@@ -25,50 +25,30 @@ fn debug_exe() {
 impl eframe::App for MyApp {
    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
       egui::CentralPanel::default().show(ctx, |ui| {
-
          // 画像の表示
-         if let Some(tex_id) = self.tex_id {
-            ui.add(
-               egui::Image::new(
-               (self.tex_id.expect("tex_not_found"),
-                  self.tex_size.expect("size_not_found"))
-         ));
-            
+         if let Some(tex_handle) = self.tex_handle {
+               ui.image(tex_handle);
          }else {
             let path = "../../../sample_images/image-1.jpg";
             let img =image::open(path).expect("画像を開けません");
-            self.tex_id = Some(img);
-            self.tex_size = Some(
-               egui::Vec2::new(
-                  img.width() as f32 
-                  ,img.height() as f32));
-
-         }
-
-      });
-   }
+      }});
+      }
 }
 
 struct MyApp {
-   tex_id: Option<egui::TextureId>,
-   tex_size:Option<egui::Vec2>,
+   tex_handle:Option<egui::TextureHandle>
 }
 
 
 impl MyApp {
    fn new() -> Self {
       Self {
-         tex_id: None,
-         tex_size:None,
+        tex_handle : None
       }
    }
 }
 
-//--------------------------------------------------------------
 
-/// 入力からファイルパスを取得する
-///
-/// return: ファイルパスのリスト
 fn input_to_pathes() -> Vec<PathBuf>{
    if atty::isnt(atty::Stream::Stdin) {
       let file_path_str = std::io::stdin().lock().lines().map(|line| {
