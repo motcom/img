@@ -1,10 +1,12 @@
 use std::io::BufRead ;
 use std::path::PathBuf;
+use std::path::Path;
 use atty;
 use clap;
 use eframe::{self};
 use egui::{self, ColorImage};
 use image;
+
 
 pub struct MyViwer {
    // テクスチャハンドル
@@ -25,53 +27,100 @@ impl MyViwer {
    pub fn new() -> Self {
       let mut tex_handle_lst = Vec::<egui::ColorImage>::new();
       let pathes = MyViwer::input_to_pathes();
-      println!("{:?}",pathes);
+      let image_extensions = vec![
+        "avif", "bmp", "dds", "farbfeld", "gif", "hdr", "ico", 
+        "jpeg", "exr", "png", "pnm", "qoi", "tga", "tiff", "webp"
+      ];
 
       for path in pathes {
-         tex_handle_lst.push(MyViwer::path_to_tex_handle(path));
+
+         // extension が画像じゃなければ無視
+         match path.extension().and_then(|s| s.to_str())
+         {
+            Some(p) => {if !image_extensions.contains(&p) {
+                  continue;
+               }
+            },
+            None=>{continue}
+         }
+
+         // パスから画像データを取得
+         let col_img_opt = MyViwer::path_to_tex_handle(path);
+
+         // リストに入れる
+         if let Some(col_img) = col_img_opt {
+            tex_handle_lst.push(col_img);
+         }
       }
 
       Self {
         tex_handle_lst,
-        cur_index:      0,
+        cur_index:   0,
       }
    }
+
    // パスからテクスチャハンドルへ変更する
-   fn path_to_tex_handle(path:PathBuf) -> ColorImage{
-            let img =image::open(path).expect(&format!("{}このパスからimageモジュールから画像を開けません","path"));
+   fn path_to_tex_handle(path:PathBuf) -> Option<ColorImage>{
+            let img =image::open(path);
+            match img
+         {
+         Ok(img) => {
             let img = img.to_rgba8();
             let (width,height) = img.dimensions();
             let pixels = img.into_raw();
-            egui::ColorImage::from_rgba_unmultiplied([width as usize,height as usize], &pixels)
+            Some(egui::ColorImage::from_rgba_unmultiplied([width as usize,height as usize], &pixels))
+         }
+         Err(_) => {None}
+      }
    }
 
+   // 次へ
    fn next(&mut self) {
       self.cur_index += 1;
       if self.cur_index >= self.tex_handle_lst.len() as isize{
          self.cur_index = 0;
       }
    }
+
+   // 後ろへ
    fn back(&mut self) {
       self.cur_index -= 1;
       if self.cur_index <= 0 {
          self.cur_index = (self.tex_handle_lst.len() -1) as isize;
       }
    }
-
+   
+   // path をinputする
    fn input_to_pathes() -> Vec<PathBuf>{
       if atty::isnt(atty::Stream::Stdin) {
+
          let file_path_str = std::io::stdin().lock().lines().map(|line| {
             let line = line.expect("Failed to read line");
             PathBuf::from(line)
          }).filter(|path|path.exists()).collect();
          file_path_str
-      } else {
+
+         } else {
+
+         // コマンドライン引数の設定
          let matches = clap::Command::new("img")
             .version("0.1.0")
             .author("mo")
             .about("simple img viewer")
             .arg(clap::Arg::new("input_img_path").required(true))
             .get_matches();
+         
+         // ディレクトリかどうか
+         if let Some(path_str) = matches.get_one::<String>("input_img_path"){
+            let path = Path::new(path_str);
+            if path.is_dir() && path.exists(){
+
+               // ---------------------------ここから-----------------------
+
+
+            }
+         }
+
          // コマンドライン引数のパース
          let file_path_str:Vec<PathBuf> = matches.get_one::<String>("input_img_path")
             .expect("ファイルパスがありません")
