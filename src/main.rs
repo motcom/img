@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use atty;
 use clap;
 use eframe::{self};
-use egui;
-use image;
+use egui::{self, ColorImage};
+use image::{self, GenericImageView};
 
 
 // メイン関数
@@ -16,7 +16,7 @@ fn debug_exe() {
    eframe::run_native(
       "my_app",
       eframe::NativeOptions::default(),
-      Box::new(|_| Ok(Box::new(MyApp::new( )))),
+      Box::new(|cc| Ok(Box::new(MyApp::new(cc)))),
    ).expect("Failed to run eframe");
  }
 
@@ -24,43 +24,55 @@ fn debug_exe() {
 // 画像ビューワー構造体 -----------------------------------
 impl eframe::App for MyApp {
    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+
       egui::CentralPanel::default().show(ctx, |ui| {
-
-         // 画像の表示
-         if let Some(tex_id) = self.tex_id {
-            ui.add(
-               egui::Image::new(
-               (self.tex_id.expect("tex_not_found"),
-                  self.tex_size.expect("size_not_found"))
-         ));
-            
-         }else {
-            let path = "../../../sample_images/image-1.jpg";
-            let img =image::open(path).expect("画像を開けません");
-            self.tex_id = Some(img);
-            self.tex_size = Some(
-               egui::Vec2::new(
-                  img.width() as f32 
-                  ,img.height() as f32));
-
+         if let Some(tex) = &self.tex_handle{
+            ui.image(tex);
+         }else{
+            self.load_image(ctx,"../../../SamplePicture/image-1.jpg");
          }
-
       });
+
+      // 終了処理
+      ctx.request_repaint_after(std::time::Duration::from_millis(33));
    }
+
 }
 
+
 struct MyApp {
-   tex_id: Option<egui::TextureId>,
-   tex_size:Option<egui::Vec2>,
+   tex_handle: Option<egui::TextureHandle>,
+   last_window_size:Option<usize>,
 }
 
 
 impl MyApp {
-   fn new() -> Self {
+   fn new(_cc: &eframe::CreationContext<'_>) -> Self {
       Self {
-         tex_id: None,
-         tex_size:None,
+         tex_handle: None,
+         last_window_size:None,
       }
+   }
+
+   fn load_image(&mut self,ctx:&egui::Context,path:&str){
+      let img = match image::open(path) {
+         Ok(img) => img,
+         Err(_) => {println!("画像は読み込めませんでした{}",path);
+            return;
+         }
+      };
+      // サイズを取得
+      let (width,height) = img.dimensions();
+      let size = [width as usize,height as usize];
+      
+      // RGBA8 フォーマットに変換
+      let rgba_image = img.to_rgba8();
+      // egui::ColorImage を作成
+      let color_image = 
+         egui::ColorImage::from_rgba_unmultiplied(size,&rgba_image);
+
+      // RetainedImageに変換
+      self.tex_handle = Some(ctx.load_texture("image", color_image, egui::TextureOptions::default()));
    }
 }
 
