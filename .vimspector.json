@@ -5,7 +5,10 @@
          "filetypes": [ "rust" ],
          "configuration": {
            "request": "launch",
-           "program": "${workspaceRoot}/target/debug/img.exe"
+           "program": "${workspaceRoot}/target/debug/img.exe",
+
+           "args": ["D:/SamplePicture"]
+
          }
        }
      }

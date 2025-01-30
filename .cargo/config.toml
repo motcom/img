@@ -1,0 +1,5 @@
+[build]
+rustflags = []
+
+[target.'cfg(debug_assersions)']
+runnner = "cargo run -- D:\\SamplePicture"
