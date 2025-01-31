@@ -4,12 +4,14 @@ use std::path::Path;
 use atty;
 use clap;
 use eframe::{self};
+use egui::ViewportBuilder;
 use egui::{self, ColorImage};
 use image;
 
 // Data 構造----------------------------------------------------------------------------------
 struct LabeledColor {
-   _name:String,
+   _path:PathBuf,
+   size:(usize,usize),
    color:egui::ColorImage
 }
 
@@ -21,13 +23,27 @@ pub struct MyViwer {
 // Data 構造----------------------------------------------------------------------------------
 
 impl MyViwer {
-   // 実行
+   // 実行イベントループをする前の初期設定もここで行う
    pub fn exe(&mut self) {
+      let max_size = self.get_maxsize();
+
+      let native_opt = eframe::NativeOptions {
+          viewport:ViewportBuilder::default().with_inner_size([max_size.0 as f32,max_size.1 as f32]),
+         ..Default::default()
+      };
+
+      // イベントループの生成
       eframe::run_native(
          "img",
-         eframe::NativeOptions::default(),
+         native_opt,
          Box::new(|_| Ok(Box::new(MyViwer::new()))),
       ).expect("Failed to run eframe");
+   }
+
+   fn get_maxsize(&mut self)->(usize,usize) {
+      let max_width = self.tex_handle_lst.iter().map(|x| x.size.0).max().unwrap_or(0);
+      let max_height = self.tex_handle_lst.iter().map(|y| y.size.1).max().unwrap_or(0);
+      (max_width,max_height)
    }
 
    // コンストラクタ
@@ -39,6 +55,7 @@ impl MyViwer {
         "jpeg", "exr", "png", "pnm", "qoi", "tga", "tiff", "webp"
       ];
 
+      // tex_handle_lstの構築
       for path in pathes {
          // extension が画像じゃなければ無視
          match path.extension().and_then(|s| s.to_str())
@@ -56,7 +73,8 @@ impl MyViwer {
          // リストに入れる
          if let Some(col_img) = col_img_opt {
             tex_handle_lst.push(LabeledColor{
-               _name:path.file_stem().expect("file name not found").to_string_lossy().into_owned(),
+               _path: path ,
+               size:(col_img.width(),col_img.height()),
                color:col_img,
             });
          }
