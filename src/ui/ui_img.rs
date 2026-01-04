@@ -22,6 +22,13 @@ pub fn exe() {
     .expect("failed run loop");
 }
 
+/// 画像アプリケーションの状態を保持する構造体です。
+pub struct ImageViewer {
+    /// 画像管理用のアプリケーション層
+    img_app: ImageApplication,
+    zoom_factor: f32,
+}
+
 /// eframe::Appトレイトの実装。フレームごとにUIを更新します。
 impl eframe::App for ImageViewer {
     /// 毎フレーム呼ばれ、UIの描画・イベント処理を行います。
@@ -32,18 +39,13 @@ impl eframe::App for ImageViewer {
     }
 }
 
-/// 画像アプリケーションの状態を保持する構造体です。
-pub struct ImageViewer {
-    /// 画像管理用のアプリケーション層
-    img_app: ImageApplication,
-}
-
 /// ImageViewerのユーティリティメソッド群
 impl ImageViewer {
     /// 新しいImageViewerインスタンスを生成します。
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             img_app: ImageApplication::new(),
+            zoom_factor: 1.0,
         }
     }
 
@@ -60,7 +62,12 @@ impl ImageViewer {
     ) -> Option<()> {
         // 画像の描画
         if let Some(tex_handle) = self.img_app.get_image() {
-            ui.image(tex_handle);
+            let tex_size = tex_handle.size();
+            let tex_size = egui::Vec2::new(
+                tex_size[0] as f32 * self.zoom_factor,
+                tex_size[1] as f32 * self.zoom_factor,
+            );
+            ui.add(egui::Image::new((tex_handle.id(), tex_size)));
         }
         // インプット処理 ----------------------------------------------->
         // Pキーでクリップボードから画像またはパスを貼り付け
@@ -81,6 +88,16 @@ impl ImageViewer {
             }
 
             self.img_app.load_img(ctx);
+        }
+
+        // Kキーで画像ズームアップ
+        if ui.input(|i| i.key_pressed(egui::Key::K)) {
+            self.zoom_factor += 0.25;
+        }
+
+        // Jキーで画像ズームダウン
+        if ui.input(|i| i.key_pressed(egui::Key::J)) {
+            self.zoom_factor -= 0.25;
         }
 
         // Lキーで次の画像へ
