@@ -6,16 +6,23 @@ use image;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// サポートされている画像拡張子のリスト
 const IMAGE_FORMAT: [&str; 3] = ["png", "jpg", "tga"];
 
+/// ディレクトリ内の画像ファイルパスを管理し、画像の切り替えや取得を行う構造体です。
 #[derive(Default)]
 pub struct ImagePathes {
+    /// 現在読み込まれている画像
     cur_img: Option<ColorImage>,
+    /// 管理している画像ファイルのパスリスト
     image_lst: Vec<PathBuf>,
+    /// 現在選択されている画像のインデックス
     index: usize,
 }
 
+/// ImagePathesのユーティリティメソッド群
 impl ImagePathes {
+    /// 指定したパスから対応する画像ファイルを収集します。
     fn collect_images_from_path<T: AsRef<Path>>(&mut self, path: T) {
         self.image_lst.clear();
         if let Ok(entries) = fs::read_dir(path) {
@@ -29,6 +36,8 @@ impl ImagePathes {
             }
         }
     }
+
+    /// 新しいImagePathesインスタンスを生成します。
     pub fn new() -> Self {
         Self {
             ..Default::default()
@@ -36,7 +45,9 @@ impl ImagePathes {
     }
 }
 
+/// 画像パスリストの切り替えや画像の取得などのトレイト実装
 impl ImageDomainTrait for ImagePathes {
+    /// 次の画像にインデックスを進めます。
     fn next(&mut self) {
         let len = self.image_lst.len();
         if len == 0 {
@@ -45,6 +56,7 @@ impl ImageDomainTrait for ImagePathes {
         self.index = (self.index + 1) % len;
     }
 
+    /// 前の画像にインデックスを戻します。
     fn previous(&mut self) {
         let len = self.image_lst.len();
         if len == 0 {
@@ -53,6 +65,7 @@ impl ImageDomainTrait for ImagePathes {
         self.index = (self.index + len - 1) % len;
     }
 
+    /// テキスト（パス）を貼り付け、画像ファイルリストを更新します。
     fn pasete(&mut self, paste_item: PasteItem) {
         if let PasteItem::Text(text) = paste_item {
             let path = Path::new(&text);
@@ -60,6 +73,7 @@ impl ImageDomainTrait for ImagePathes {
         }
     }
 
+    /// 現在選択されている画像を読み込み、返します。
     fn get_image(&mut self) -> Option<&ColorImage> {
         if let Some(img_path) = self.image_lst.get(self.index) {
             let img = image::open(img_path).ok()?;
@@ -72,6 +86,7 @@ impl ImageDomainTrait for ImagePathes {
         None
     }
 
+    /// このドメインの種別を返します。
     fn kind(&self) -> super::types::ImageTraitKind {
         ImageTraitKind::Text
     }
@@ -82,6 +97,7 @@ impl ImageDomainTrait for ImagePathes {
 mod tests {
     use crate::domain::image_pathes_domain::ImagePathes;
 
+    /// 指定ディレクトリ内の画像ファイル収集テスト
     #[test]
     fn test_image_path() {
         let mut img_pathes = ImagePathes::new();
@@ -89,5 +105,4 @@ mod tests {
         assert_eq!(img_pathes.image_lst.len(), 5);
     }
 }
-
 // Test <--------------------------------------------------------------------
