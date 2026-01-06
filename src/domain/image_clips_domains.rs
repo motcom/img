@@ -1,8 +1,9 @@
 use crate::domain::{
     images_domains_trait::ImageDomainTrait,
-    types::{ImageTraitKind, PasteItem},
+    types::{ImageTraitKind, PasteItem, ZoomFactor},
 };
 use eframe::egui::ColorImage;
+use std::collections::HashMap;
 
 /// 複数の画像をリストで管理し、インデックスで操作できる構造体です。
 #[derive(Default)]
@@ -11,6 +12,9 @@ pub struct ImageClipDomain {
     image_lst: Vec<ColorImage>,
     /// 現在選択されている画像のインデックス
     index: usize,
+
+    /// indexでzoomを保持
+    index_to_zoomfactor: HashMap<usize, ZoomFactor>,
 }
 
 /// ImageClipDomainのユーティリティメソッド群
@@ -59,6 +63,17 @@ impl ImageDomainTrait for ImageClipDomain {
     /// このドメインの種別を返します。
     fn kind(&self) -> super::types::ImageTraitKind {
         ImageTraitKind::Image
+    }
+
+    fn get_curimage_factor(&self) -> ZoomFactor {
+        self.index_to_zoomfactor
+            .get(&self.index)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    fn set_curimage_factor(&mut self, zoom_factor: ZoomFactor) {
+        self.index_to_zoomfactor.insert(self.index, zoom_factor);
     }
 }
 

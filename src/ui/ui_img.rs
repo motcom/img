@@ -26,7 +26,6 @@ pub fn exe() {
 pub struct ImageViewer {
     /// 画像管理用のアプリケーション層
     img_app: ImageApplication,
-    zoom_factor: f32,
 }
 
 /// eframe::Appトレイトの実装。フレームごとにUIを更新します。
@@ -45,7 +44,6 @@ impl ImageViewer {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             img_app: ImageApplication::new(),
-            zoom_factor: 1.0,
         }
     }
 
@@ -54,6 +52,8 @@ impl ImageViewer {
     /// - Pキー: クリップボードから画像またはパスを貼り付け
     /// - Lキー: 次の画像へ
     /// - Hキー: 前の画像へ
+    ///
+    ///
     fn process_ui(
         &mut self,
         ui: &mut Ui,
@@ -91,18 +91,18 @@ impl ImageViewer {
         }
 
         // Kキーで画像ズームアップ
-        if ui.input(|i| i.key_pressed(egui::Key::K)) {
-            self.zoom_factor += 0.25;
-        }
+        if ui.input(|i| i.key_pressed(egui::Key::K)) {}
 
         // Jキーで画像ズームダウン
         if ui.input(|i| i.key_pressed(egui::Key::J)) {
-            self.zoom_factor -= 0.25;
+            let mut zoom_factor = self.img_app.get_cur_zoomfactor();
+            self.img_app.set_cur_zoomfactor(zoom_factor.get() - 0.25);
         }
 
         // Lキーで次の画像へ
         if ui.input(|i| i.key_pressed(egui::Key::L)) {
             self.img_app.next();
+
             self.img_app.load_img(ctx);
         }
         // Hキーで前の画像へ

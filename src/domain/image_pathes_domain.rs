@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use crate::domain::images_domains_trait::ImageDomainTrait;
-use crate::domain::types::{ImageTraitKind, PasteItem};
+use crate::domain::types::{ImageTraitKind, PasteItem, ZoomFactor};
 use eframe::egui::ColorImage;
 use image;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,6 +19,9 @@ pub struct ImagePathes {
     image_lst: Vec<PathBuf>,
     /// 現在選択されている画像のインデックス
     index: usize,
+
+    /// indexでzoomを保持
+    index_to_zoomfactor: HashMap<usize, ZoomFactor>,
 }
 
 /// ImagePathesのユーティリティメソッド群
@@ -89,6 +93,17 @@ impl ImageDomainTrait for ImagePathes {
     /// このドメインの種別を返します。
     fn kind(&self) -> super::types::ImageTraitKind {
         ImageTraitKind::Text
+    }
+
+    fn get_curimage_factor(&self) -> ZoomFactor {
+        self.index_to_zoomfactor
+            .get(&self.index)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    fn set_curimage_factor(&mut self, zoom_factor: ZoomFactor) {
+        self.index_to_zoomfactor.insert(self.index, zoom_factor);
     }
 }
 

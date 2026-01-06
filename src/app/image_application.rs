@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use crate::domain::image_clips_domains::ImageClipDomain;
-use crate::domain::types::ImageTraitKind;
+use crate::domain::types::{ImageTraitKind, ZoomFactor};
 use crate::domain::{
     image_pathes_domain::ImagePathes, images_domains_trait::ImageDomainTrait, types::PasteItem,
 };
@@ -81,6 +81,19 @@ impl ImageApplication {
             let img = img_domain_trait.get_image().unwrap().clone();
             let tex = ctx.load_texture("egui_img", img, TextureOptions::default());
             self.tex_handle_opt = Some(tex);
+        }
+    }
+
+    pub fn get_cur_zoomfactor(&self) -> ZoomFactor {
+        if let Some(img_trait) = &self.image_domain_trait {
+            return img_trait.get_curimage_factor();
+        }
+        ZoomFactor::default()
+    }
+
+    pub fn set_cur_zoomfactor(&mut self, zoom_factor: ZoomFactor) {
+        if let Some(img_trait) = &mut self.image_domain_trait {
+            img_trait.set_curimage_factor(zoom_factor);
         }
     }
 }
