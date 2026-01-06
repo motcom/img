@@ -1,7 +1,9 @@
-#![allow(dead_code)]
 use crate::app::image_application::ImageApplication;
 use crate::domain::types::PasteItem;
+use crate::domain::types::ZoomFactor;
 use arboard::Clipboard;
+use eframe::egui::TextureHandle;
+use eframe::egui::TextureOptions;
 use eframe::egui::{self, Ui, ViewportBuilder};
 
 /// アプリケーションのエントリポイント関数です。
@@ -33,7 +35,8 @@ impl eframe::App for ImageViewer {
     /// 毎フレーム呼ばれ、UIの描画・イベント処理を行います。
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.process_ui(ui, ctx, frame);
+            self.input(ui, ctx, frame);
+            self.render(ui, ctx, frame);
         });
     }
 }
@@ -46,29 +49,45 @@ impl ImageViewer {
             img_app: ImageApplication::new(),
         }
     }
+    fn color_image_to_texture(&mut self, ctx: &egui::Context) -> Option<TextureHandle> {
+        let color_img_ref_opt = self.img_app.get_image();
+        if let Some(color_img_ref) = color_img_ref_opt {
+            let color_img_ref = color_img_ref.clone();
+            return Some(ctx.load_texture(
+                "main_render_img",
+                color_img_ref,
+                TextureOptions::default(),
+            ));
+        };
+        None
+    }
 
-    /// UIの描画と各種入力イベントの処理を行います。
-    ///
-    /// - Pキー: クリップボードから画像またはパスを貼り付け
-    /// - Lキー: 次の画像へ
-    /// - Hキー: 前の画像へ
-    ///
-    ///
-    fn process_ui(
+    fn render(
         &mut self,
         ui: &mut Ui,
         ctx: &egui::Context,
         _frame: &mut eframe::Frame,
     ) -> Option<()> {
         // 画像の描画
-        if let Some(tex_handle) = self.img_app.get_image() {
+        let texture_handle_opt = self.color_image_to_texture(ctx);
+        let zoom_factor = self.img_app.get_cur_zoomfactor();
+        if let Some(tex_handle) = texture_handle_opt {
             let tex_size = tex_handle.size();
             let tex_size = egui::Vec2::new(
-                tex_size[0] as f32 * self.zoom_factor,
-                tex_size[1] as f32 * self.zoom_factor,
+                tex_size[0] as f32 * zoom_factor.get(),
+                tex_size[1] as f32 * zoom_factor.get(),
             );
             ui.add(egui::Image::new((tex_handle.id(), tex_size)));
         }
+        Some(())
+    }
+
+    fn input(
+        &mut self,
+        ui: &mut Ui,
+        _ctx: &egui::Context,
+        _frame: &mut eframe::Frame,
+    ) -> Option<()> {
         // インプット処理 ----------------------------------------------->
         // Pキーでクリップボードから画像またはパスを貼り付け
         if ui.input(|i| i.key_pressed(egui::Key::P)) {
@@ -86,32 +105,31 @@ impl ImageViewer {
                 let color_image = egui::ColorImage::new([img.width, img.height], pixels);
                 self.img_app.paste(PasteItem::Image(color_image));
             }
-
-            self.img_app.load_img(ctx);
         }
 
-        // Kキーで画像ズームアップ
-        if ui.input(|i| i.key_pressed(egui::Key::K)) {}
-
-        // Jキーで画像ズームダウン
+        // Jキーで画像ズームアップ
         if ui.input(|i| i.key_pressed(egui::Key::J)) {
-            let mut zoom_factor = self.img_app.get_cur_zoomfactor();
-            self.img_app.set_cur_zoomfactor(zoom_factor.get() - 0.25);
+            let zoom_factor = self.img_app.get_cur_zoomfactor();
+            let val = zoom_factor.get() + 0.25;
+            self.img_app.set_cur_zoomfactor(ZoomFactor::new(val));
+        }
+
+        // Kキーで画像ズームダウン
+        if ui.input(|i| i.key_pressed(egui::Key::K)) {
+            let zoom_factor = self.img_app.get_cur_zoomfactor();
+            let val = zoom_factor.get() - 0.25;
+            self.img_app.set_cur_zoomfactor(ZoomFactor::new(val));
         }
 
         // Lキーで次の画像へ
         if ui.input(|i| i.key_pressed(egui::Key::L)) {
             self.img_app.next();
-
-            self.img_app.load_img(ctx);
         }
         // Hキーで前の画像へ
         if ui.input(|i| i.key_pressed(egui::Key::H)) {
             self.img_app.previous();
-            self.img_app.load_img(ctx);
         }
 
-        // インプット <-----------------------------------------------
         Some(())
     }
 }

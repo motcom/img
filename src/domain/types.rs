@@ -9,9 +9,15 @@ impl Default for ZoomFactor {
 }
 
 impl ZoomFactor {
+    pub fn new(val: f32) -> Self {
+        Self(val)
+    }
+
+    #[allow(dead_code)]
     pub fn set(&mut self, val: f32) {
         self.0 = val.clamp(0.1, 2.0);
     }
+
     pub fn get(self) -> f32 {
         self.0
     }
