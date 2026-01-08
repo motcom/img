@@ -1,4 +1,4 @@
-use eframe::egui::ColorImage;
+use image::RgbImage;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ZoomFactor(f32);
@@ -10,7 +10,7 @@ impl Default for ZoomFactor {
 
 impl ZoomFactor {
     pub fn new(val: f32) -> Self {
-        Self(val)
+        Self(val.clamp(0.1, 2.0))
     }
 
     #[allow(dead_code)]
@@ -28,14 +28,11 @@ pub enum PasteItem {
     /// テキスト（主にパス情報など）
     Text(String),
     /// 画像データ
-    Image(ColorImage),
+    Image(RgbImage),
 }
 
-/// 画像ドメインの種別を表す列挙型です。
-#[derive(PartialEq, Debug)]
-pub enum ImageTraitKind {
-    /// パスやテキストによる画像管理
-    Text,
-    /// 画像そのものによる管理
-    Image,
+///　ビューワーのモード切り替え
+pub enum ViewerMode {
+    Normal,
+    List,
 }

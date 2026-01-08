@@ -1,10 +1,13 @@
 use crate::app::image_application::ImageApplication;
 use crate::domain::types::PasteItem;
+use crate::domain::types::ViewerMode;
 use crate::domain::types::ZoomFactor;
 use arboard::Clipboard;
+use eframe::egui::ColorImage;
 use eframe::egui::TextureHandle;
 use eframe::egui::TextureOptions;
 use eframe::egui::{self, Ui, ViewportBuilder};
+use image::RgbImage;
 
 /// アプリケーションのエントリポイント関数です。
 /// ウィンドウの設定を行い、eframeアプリケーションを起動します。
@@ -28,6 +31,10 @@ pub fn exe() {
 pub struct ImageViewer {
     /// 画像管理用のアプリケーション層
     img_app: ImageApplication,
+    /// テクスチャハンドルの保持
+    texture_handle_opt: Option<TextureHandle>,
+    /// ビューワーのモード
+    viewer_mode: ViewerMode,
 }
 
 /// eframe::Appトレイトの実装。フレームごとにUIを更新します。
@@ -47,17 +54,23 @@ impl ImageViewer {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             img_app: ImageApplication::new(),
+            texture_handle_opt: None,
+            viewer_mode: ViewerMode::Normal,
         }
     }
-    fn color_image_to_texture(&mut self, ctx: &egui::Context) -> Option<TextureHandle> {
+
+    fn rgb_image_to_texture(&mut self, ctx: &egui::Context) -> Option<TextureHandle> {
         let color_img_ref_opt = self.img_app.get_image();
         if let Some(color_img_ref) = color_img_ref_opt {
-            let color_img_ref = color_img_ref.clone();
-            return Some(ctx.load_texture(
-                "main_render_img",
+            let egui_img = ColorImage::from_rgb(
+                [
+                    color_img_ref.width() as usize,
+                    color_img_ref.height() as usize,
+                ],
                 color_img_ref,
-                TextureOptions::default(),
-            ));
+            );
+
+            return Some(ctx.load_texture("main_render_img", egui_img, TextureOptions::default()));
         };
         None
     }
@@ -65,21 +78,29 @@ impl ImageViewer {
     fn render(
         &mut self,
         ui: &mut Ui,
-        ctx: &egui::Context,
+        _ctx: &egui::Context,
         _frame: &mut eframe::Frame,
     ) -> Option<()> {
-        // 画像の描画
-        let texture_handle_opt = self.color_image_to_texture(ctx);
-        let zoom_factor = self.img_app.get_cur_zoomfactor();
-        if let Some(tex_handle) = texture_handle_opt {
-            let tex_size = tex_handle.size();
-            let tex_size = egui::Vec2::new(
-                tex_size[0] as f32 * zoom_factor.get(),
-                tex_size[1] as f32 * zoom_factor.get(),
-            );
-            ui.add(egui::Image::new((tex_handle.id(), tex_size)));
+        // 画像の描画ノーマルモード
+        match self.viewer_mode {
+            ViewerMode::Normal => {
+                let zoom_factor = self.img_app.get_cur_zoomfactor();
+                if let Some(tex_handle) = &self.texture_handle_opt {
+                    let tex_size = tex_handle.size();
+                    let tex_size = egui::Vec2::new(
+                        tex_size[0] as f32 * zoom_factor.get(),
+                        tex_size[1] as f32 * zoom_factor.get(),
+                    );
+                    ui.add(egui::Image::new((tex_handle.id(), tex_size)));
+                }
+            }
+            ViewerMode::List => {}
         }
         Some(())
+    }
+
+    fn load_texture(&mut self, _ui: &mut Ui, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.texture_handle_opt = self.rgb_image_to_texture(ctx);
     }
 
     fn input(
@@ -96,15 +117,17 @@ impl ImageViewer {
                 self.img_app.paste(PasteItem::Text(path_str));
             }
             if let Ok(img) = clip.get_image() {
-                let pixels: Vec<egui::Color32> = img
-                    .bytes
-                    .chunks(4)
-                    .map(|c| egui::Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]))
-                    .collect();
+                let rgb_img = RgbImage::from_raw(
+                    img.width as u32,
+                    img.height as u32,
+                    img.bytes.into_owned(),
+                )?;
 
-                let color_image = egui::ColorImage::new([img.width, img.height], pixels);
-                self.img_app.paste(PasteItem::Image(color_image));
+                let paste_item_img = PasteItem::Image(rgb_img);
+
+                self.img_app.paste(paste_item_img);
             }
+            self.load_texture(ui, _ctx, _frame);
         }
 
         // Jキーで画像ズームアップ
@@ -124,10 +147,19 @@ impl ImageViewer {
         // Lキーで次の画像へ
         if ui.input(|i| i.key_pressed(egui::Key::L)) {
             self.img_app.next();
+            self.load_texture(ui, _ctx, _frame);
         }
         // Hキーで前の画像へ
         if ui.input(|i| i.key_pressed(egui::Key::H)) {
             self.img_app.previous();
+            self.load_texture(ui, _ctx, _frame);
+        }
+        // Tabキーでビューワーモード切り替え
+        if ui.input(|i| i.key_pressed(egui::Key::Tab)) {
+            match self.viewer_mode {
+                ViewerMode::Normal => self.viewer_mode = ViewerMode::List,
+                ViewerMode::List => self.viewer_mode = ViewerMode::Normal,
+            }
         }
 
         Some(())

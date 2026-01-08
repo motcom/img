@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use eframe::egui::ColorImage;
+use image::RgbImage;
 
 use crate::domain::image_clips_domains::ImageClipDomain;
-use crate::domain::types::{ImageTraitKind, ZoomFactor};
+use crate::domain::types::ZoomFactor;
 use crate::domain::{
     image_pathes_domain::ImagePathes, images_domains_trait::ImageDomainTrait, types::PasteItem,
 };
@@ -40,23 +40,16 @@ impl ImageApplication {
             }
 
             PasteItem::Image(img) => {
-                if let Some(img_trait) = &self.image_domain_trait
-                    && let ImageTraitKind::Image = img_trait.kind()
-                {
-                    self.image_domain_trait
-                        .as_mut()
-                        .unwrap()
-                        .pasete(PasteItem::Image(img));
-                } else {
-                    let mut image_clips_domain = ImageClipDomain::new();
-                    image_clips_domain.pasete(PasteItem::Image(img));
-                    self.image_domain_trait = Some(Box::<ImageClipDomain>::new(image_clips_domain));
-                }
+                let domain = self
+                    .image_domain_trait
+                    .get_or_insert_with(|| Box::new(ImageClipDomain::new()));
+
+                domain.pasete(PasteItem::Image(img));
             }
         }
     }
 
-    pub fn get_image(&mut self) -> Option<&ColorImage> {
+    pub fn get_image(&mut self) -> Option<&RgbImage> {
         if let Some(img_trait) = &mut self.image_domain_trait {
             return img_trait.get_image();
         }

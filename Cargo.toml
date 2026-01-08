@@ -6,5 +6,5 @@ edition = "2024"
 
 [dependencies]
 eframe = "0.33.3"
-image = "0.25.9"
+image = { version = "0.25.9", features = ["png", "jpeg", "tga", "webp"] }
 arboard = "3.6.1"

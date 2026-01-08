@@ -1,5 +1,5 @@
-use crate::domain::types::{ImageTraitKind, PasteItem, ZoomFactor};
-use eframe::egui::ColorImage;
+use crate::domain::types::{PasteItem, ZoomFactor};
+use image::RgbImage;
 
 /// 画像ドメインの共通インターフェースを定義するトレイトです。
 /// 画像の貼り付け、取得、切り替え、種別取得などの操作を提供します。
@@ -8,7 +8,7 @@ pub trait ImageDomainTrait {
     fn pasete(&mut self, paste_item: PasteItem);
 
     /// 現在選択されている画像を取得します。
-    fn get_image(&mut self) -> Option<&ColorImage>;
+    fn get_image(&mut self) -> Option<&RgbImage>;
 
     /// 次の画像に切り替えます。
     fn next(&mut self);
@@ -19,6 +19,7 @@ pub trait ImageDomainTrait {
     fn get_curimage_factor(&self) -> ZoomFactor;
     fn set_curimage_factor(&mut self, zoom_factor: ZoomFactor);
 
-    /// このドメインの種別を返します。
-    fn kind(&self) -> ImageTraitKind;
+    fn get_samnails(&self, samnail_cur_index: usize, samnail_nums_per_page: usize)
+    -> Vec<RgbImage>;
+    fn get_image_nums(&self) -> usize;
 }

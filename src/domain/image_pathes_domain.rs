@@ -1,20 +1,21 @@
 #![allow(dead_code)]
 use crate::domain::images_domains_trait::ImageDomainTrait;
-use crate::domain::types::{ImageTraitKind, PasteItem, ZoomFactor};
+use crate::domain::types::{PasteItem, ZoomFactor};
 use eframe::egui::ColorImage;
 use image;
+use image::RgbImage;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// サポートされている画像拡張子のリスト
-const IMAGE_FORMAT: [&str; 3] = ["png", "jpg", "tga"];
+const IMAGE_FORMAT: [&str; 4] = ["png", "jpg", "tga", "webp"];
 
 /// ディレクトリ内の画像ファイルパスを管理し、画像の切り替えや取得を行う構造体です。
 #[derive(Default)]
 pub struct ImagePathes {
     /// 現在読み込まれている画像
-    cur_img: Option<ColorImage>,
+    cur_img: Option<RgbImage>,
     /// 管理している画像ファイルのパスリスト
     image_lst: Vec<PathBuf>,
     /// 現在選択されている画像のインデックス
@@ -51,6 +52,22 @@ impl ImagePathes {
 
 /// 画像パスリストの切り替えや画像の取得などのトレイト実装
 impl ImageDomainTrait for ImagePathes {
+    /// テキスト（パス）を貼り付け、画像ファイルリストを更新します。
+    fn pasete(&mut self, paste_item: PasteItem) {
+        if let PasteItem::Text(text) = paste_item {
+            let path = Path::new(&text);
+            self.collect_images_from_path(path);
+        }
+    }
+
+    /// 現在選択されている画像を読み込み、返します。
+    fn get_image(&mut self) -> Option<&RgbImage> {
+        if let Some(img_path) = self.image_lst.get(self.index) {
+            self.cur_img = image::open(img_path).ok().and_then(|px| Some(px.to_rgb8()));
+        }
+        None
+    }
+
     /// 次の画像にインデックスを進めます。
     fn next(&mut self) {
         let len = self.image_lst.len();
@@ -69,32 +86,6 @@ impl ImageDomainTrait for ImagePathes {
         self.index = (self.index + len - 1) % len;
     }
 
-    /// テキスト（パス）を貼り付け、画像ファイルリストを更新します。
-    fn pasete(&mut self, paste_item: PasteItem) {
-        if let PasteItem::Text(text) = paste_item {
-            let path = Path::new(&text);
-            self.collect_images_from_path(path);
-        }
-    }
-
-    /// 現在選択されている画像を読み込み、返します。
-    fn get_image(&mut self) -> Option<&ColorImage> {
-        if let Some(img_path) = self.image_lst.get(self.index) {
-            let img = image::open(img_path).ok()?;
-            self.cur_img = Some(ColorImage::from_rgb(
-                [img.width() as usize, img.height() as usize],
-                img.to_rgb8().as_raw(),
-            ));
-            return self.cur_img.as_ref();
-        }
-        None
-    }
-
-    /// このドメインの種別を返します。
-    fn kind(&self) -> super::types::ImageTraitKind {
-        ImageTraitKind::Text
-    }
-
     fn get_curimage_factor(&self) -> ZoomFactor {
         self.index_to_zoomfactor
             .get(&self.index)
@@ -104,6 +95,18 @@ impl ImageDomainTrait for ImagePathes {
 
     fn set_curimage_factor(&mut self, zoom_factor: ZoomFactor) {
         self.index_to_zoomfactor.insert(self.index, zoom_factor);
+    }
+
+    fn get_image_nums(&self) -> usize {
+        self.image_lst.len()
+    }
+
+    fn get_samnails(
+        &self,
+        samnail_cur_index: usize,
+        samnail_nums_per_page: usize,
+    ) -> Vec<RgbImage> {
+        todo!()
     }
 }
 
