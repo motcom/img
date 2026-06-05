@@ -1,0 +1,26 @@
+# Build
+bin/
+obj/
+
+# Rider
+.idea/
+
+# VS
+.vs/
+
+# VSCode
+.vscode/
+
+# Neovim
+.nvim/
+
+# User files
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini
