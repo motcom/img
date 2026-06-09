@@ -58,7 +58,11 @@ public class MainWindow : Window
         return bounds;
     }
 
-    private void OnBtnClicked(object? sender, RoutedEventArgs e)
+    private async void OnBtnClicked(object? sender, RoutedEventArgs e)
     {
+        string[] names = { "Gorila", "Kiring", "Elephant" };
+        var wnd = new LoadDirNameWithSelector(names);
+        this.txtBlock.Text = await wnd.ShowDialog<string>(this);
+
     }
 }

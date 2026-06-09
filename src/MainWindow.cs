@@ -21,6 +21,7 @@ public class MainWindow : Window
     Point? _resizeStart;
     Size _startSize;
 
+    // コンストラクタ
     public MainWindow()
     {
         // このウィンドウのプロパティ
@@ -112,11 +113,13 @@ public class MainWindow : Window
         {
 
             // ペースト
+            case Key.V when e.KeyModifiers.HasFlag(KeyModifiers.Control):
             case Key.P:
                 OnPaste();
                 break;
 
             // トップトグル
+            case Key.Tab:
             case Key.T:
                 OnTopToggle();
                 break;
@@ -139,16 +142,34 @@ public class MainWindow : Window
                 OnBackImage();
                 break;
 
-            // zoom up
-            case Key.OemPlus:
-                OnZoomUpImage();
+            // Save
+            case Key.S when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+            case Key.S:
+                OnSave();
                 break;
 
-            // zoom down
-            case Key.OemMinus:
-                OnZoomDownImage();
+            case Key.O when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+            case Key.O:
+                OnLoad();
                 break;
+
         }
+    }
+
+
+    private async void OnSave()
+    {
+        SaveDirNameWindow wnd = new();
+        string? fileName = await wnd.ShowDialog<string?>(this);
+        Console.WriteLine($"{fileName}");
+
+        _imgApp.save(fileName);
+
+    }
+
+    private void OnLoad()
+    {
+        Console.WriteLine("Load");
     }
 
     private void OnBackImage()
@@ -157,24 +178,11 @@ public class MainWindow : Window
         windowUpdate();
     }
 
-
-
     private void OnNextImage()
     {
         _imgApp.back();
         windowUpdate();
     }
-
-    private void OnZoomDownImage()
-    {
-        Console.WriteLine("-");
-    }
-
-    private void OnZoomUpImage()
-    {
-        Console.WriteLine("+");
-    }
-
 
     // ウィンドウを閉じる
     private async void OnCloseWindow()
@@ -183,7 +191,7 @@ public class MainWindow : Window
         var box =
             MessageBoxManager.GetMessageBoxStandard
                 ("", "本当に閉じますか？", ButtonEnum.YesNo);
-        var result = await box.ShowAsync();
+        var result = await box.ShowWindowDialogAsync(this);
         if (result == ButtonResult.Yes) this.Close();
     }
 
@@ -216,7 +224,6 @@ public class MainWindow : Window
             // ImgeAppに画像を渡す
             if (bitmap is null) return;
             _imgApp.addImg(bitmap);
-
             windowUpdate();
 
         }
@@ -224,9 +231,7 @@ public class MainWindow : Window
     }
 
     // Utility ------------------------------------------------------------------
-    /// <summary>
-    /// Window Update
-    /// </summary>
+    // ImgAppでの現在の画像をウィンドウに出力
     private void windowUpdate()
     {
         // _imgAppより現在のイメージの取得

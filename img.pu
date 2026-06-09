@@ -1,0 +1,35 @@
+@startuml
+
+class ImageApp {
+    - Dictionary<string, Bitmap> _imgDict
+    - List<string> _indexLst
+
+
+    + void next()
+    + void back()
+    + void clear()
+    + void save(string dirPath)
+    + void load(string dirPath)
+    + Bitmap getImg()
+    + void addImg(Bitmap bitmap)
+}
+
+
+class MainWindow {
+    - Image _imageCtrl
+    - ImageApp _imgApp
+
+    - void OnKeyDown(object? sender, KeyEventArgs e)
+    - void OnSave()
+    - void OnLoad()
+    - void OnBackImage()
+    - void OnNextImage()
+    - void OnCloseWindow()
+    - void OnTopToggle()
+    - void OnPaste()
+}
+
+MainWindow *-- ImageApp
+
+
+@enduml
